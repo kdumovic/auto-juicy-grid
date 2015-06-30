@@ -1,0 +1,96 @@
+<link rel="import" href="../../polymer/polymer.html" />
+
+<polymer-element name="juicy-color-picker" attributes="pallete value">
+    <template>
+        <style>
+            .crayons {
+                display: flex;
+                flex-wrap: wrap;
+            }
+
+            .customCrayons {
+                margin-top: 5px;
+                display: flex;
+            }
+
+            input[type=text] {
+                flex: 1;
+                border: 1px solid #bbb;
+            }
+
+            input[type=color] {
+                background-color: #FFF;
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                opacity: 0;
+                top: 0;
+                left: 0;
+            }
+
+            .moreColors {
+                position: relative;
+                margin-left: -25px;
+                width: 25px;
+                white-space: nowrap;
+            }
+
+            button.crayon {
+                border-width: 0;
+                margin: 0;
+                width: 20px;
+                height: 20px;
+                z-index: 1;
+            }
+
+            button.crayon.transparent {
+                background-color: transparent;
+                border: 1px solid #bbb;
+                color: red;
+                margin-left: 5px;
+            }
+
+            button.crayon:hover {
+                z-index: 2;
+                -webkit-transform: scale(1.3, 1.3);
+                transform: scale(1.3, 1.3);
+            }
+        </style>
+        <div class="crayons">
+            <template repeat="{{color in colors}}">
+                <button class="editable crayon" style="background-color: {{color}}" value="{{color}}" on-click="{{setValue}}"></button>
+            </template>
+        </div>
+        <div class="customCrayons">
+            <input type="text" class="val"
+                   value="{{value}}" /><button class="moreColors">
+                ...
+                <input type="color" value="{{value}}" />
+            </button>
+            <button class="editable crayon transparent" value="transparent" on-click="{{setValue}}">╱</button>
+        </div>
+    </template>
+    <script>
+        var palletes = {
+            crayons: ['#800000', '#808000', '#008000', '#008080', '#000080', '#800080', '#7F7F7F', '#808080', '#804000', '#408000', '#008040', '#004080', '#400080', '#800040', '#666666', '#999999', '#FF0000', '#FFFF00', '#00FF00', '#00FFFF', '#0000FF', '#FF00FF', '#4C4C4C', '#B3B3B3', '#FF8000', '#80FF00', '#00FF80', '#0080FF', '#8000FF', '#FF0080', '#333333', '#CCCCCC', '#FF6666', '#FFFF66', '#66FF66', '#66FFFF', '#6666FF', '#FF66FF', '#191919', '#E6E6E6', '#FFCC66', '#CCFF66', '#66FFCC', '#66CCFF', '#CC66FF', '#FF6FCF', '#000000', '#FFFFFF'],
+            flat: ['#913D88', '#9A12B3', '#BF55EC', '#BE90D4', '#8E44AD', '#9B59B6', '#E08283', '#F22613', '#FF0000', '#E26A6A', '#D91E18', '#96281B', '#EF4836', '#D64541', '#C0392B', '#CF000F', '#E74C3C', '#E87E04', '#F4B350', '#F2784B', '#EB974E', '#F5AB35', '#F4D03F', '#D35400', '#F39C12', '#F9690E', '#F7CA18', '#F9BF3B', '#F27935', '#E67E22', '#EB9532', '#F2F1EF', '#D2D7D3', '#EEEEEE', '#BDC3C7', '#ECF0F1', '#95A5A6', '#DADFE1', '#ABB7B7', '#BFBFBF', '#65C6BB', '#1BBC9B', '#1BA39C', '#66CC99', '#36D7B7', '#049372', '#C8F7C5', '#86E2D5', '#2ECC71', '#16a085', '#3FC380', '#019875', '#26C281', '#03A678', '#4DAF7C', '#2ABB9B', '#00B16A', '#1E824C', '#26A65B', '#59ABE3', '#52B3D9', '#C5EFF7', '#22A7F0', '#3498DB', '#2C3E50', '#89C4F4', '#19B5FE', '#336E7B', '#22313F', '#6BB9F0', '#1E8BC3', '#3A539B', '#34495E', '#67809F', '#2574A9', '#1F3A93', '#4B77BE', '#5C97BF'],
+        };
+        Polymer('juicy-color-picker', {
+            value: "",
+            pallete: "flat",
+            colors: [],
+            ready: function () {
+                this.colors = palletes[this.pallete]
+            },
+            palleteChanged: function () {
+                this.colors = palletes[this.pallete]
+            },
+            valueChanged: function () {
+                this.fire("juicy-color-picker-value-changed");
+            },
+            setValue: function (ev) {
+                this.value = ev.target.value;
+            }
+        });
+    </script>
+</polymer-element>

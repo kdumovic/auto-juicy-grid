@@ -1,0 +1,222 @@
+﻿<link rel="import" href="../../polymer/polymer.html">
+<link rel="import" href="../../juicy-highlight/src/juicy-highlight.html">
+<link rel="import" href="juicy-tile-editor-font.html">
+<link rel="import" href="juicy-tile-editor-form.html">
+<link rel="import" href="juicy-tile-tree.html">
+<link rel="import" href="juicy-draggable.html" />
+<link rel="import" href="juicy-resizable.html" />
+
+<polymer-element name="juicy-tile-editor" attributes="selectionMode">
+  <template>
+      <link href="css/jte-fontawesome.css" rel="stylesheet" />
+    <style>
+        juicy-tile-editor-form {
+            display: block;
+            padding: 10px;
+            background-color: #252526;
+            color: #FFF;
+            left: 0px;
+            top: 0px;
+            height: 60px;
+            width: 100%;
+            position: fixed;
+            border-bottom: 1px solid #333333;
+            box-sizing: border-box;
+        }
+
+        .sidebar {
+            position: fixed;
+            width: 220px;
+            border: 1px solid #333333;
+            overflow: auto;
+            height:220px;
+            background-color:#252526;
+            color:#FFF;
+            font-family: 'Lucida Grande', 'Segoe UI', Ubuntu, Cantarell, sans-serif;
+            font-size:11px;
+            line-height:23px;
+        }
+
+        .sidebar h1 {
+            cursor: move;
+            padding: 0 5px;
+        }
+
+        :host.max-height .sidebar {
+            top: 35px;
+        }
+
+        .sidebar.left {
+            left:0px;
+            top: 59px;
+            height: calc(100% - 60px);
+        }
+
+        .sidebar.right {
+            right:0px;
+            top: 59px;
+            height: calc(100% - 60px);
+        }
+
+        .sidebar.top {
+            height:150px;
+            top:0px;
+            left:0px;
+            width: calc(100% - 5px)!important;
+        }
+
+        .sidebar.bottom {
+            top:initial;
+            height:150px;
+            bottom:0px;
+            left:0px;
+            width: calc(100% - 5px)!important;
+        }
+
+        .sidebar.left-top {
+            left:0px;
+            width:220px;
+            height:220px;
+            top:0px;
+        }
+
+        .sidebar.right-top {
+            left:initial;
+            right:0px;
+            width:220px;
+            height:220px;
+            top:0px;
+        }
+
+        .sidebar.left-bottom {
+            left:0px;
+            width:220px;
+            height:220px;
+            bottom:0px;
+            top:initial;
+        }
+
+        .sidebar.right-bottom {
+            left:initial;
+            right:5px;
+            width:220px;
+            height:220px;
+            bottom:5px;
+            top:initial;
+        }
+
+        .sidebar /deep/ #menu {
+            margin-left: 10px;
+        }
+
+        .sidebar /deep/ .visibility {
+            background-color: #252526;
+        }
+
+        .sidebar h1 {
+            margin: 5px 0px 0px 0px;
+            font-size: 20px;
+        }
+
+        .sidebar .actions {
+            float:right;
+            margin: 1px;
+        }
+
+        .sidebar .actions a {
+            text-decoration:none;
+            color:#7f899c;
+            display:block;
+            width:25px;
+            height:25px;
+            text-align:center;
+            line-height:25px;
+            background-color:#F0F0F0;
+        }
+
+        .sidebar .actions a:hover {
+            color:#333333;
+        }
+
+        .sidebar .resize-right,
+        .sidebar .resize-left {
+            position: absolute;
+            right: 0px;
+            width: 4px;
+            background-color: transparent;
+            height: 100%;
+            cursor: e-resize;
+            z-index: 11;
+        }
+
+        .sidebar .resize-right:hover,
+        .sidebar .resize-left:hover,
+        .sidebar .resize-right.active,
+        .sidebar .resize-left.active {
+            background-color: #808080;
+        }
+
+        .resize-left {
+            left: 0px;
+            right: auto;
+            display: none;
+        }
+
+        .sidebar.right .resize-left {
+            display: block;
+        }
+
+        .sidebar.right .resize-right,
+        .sidebar.bottom .resize-right,
+        .sidebar.top .resize-right {
+            display: none;
+        }
+
+        #sidebarHeader {
+            margin: 0px;
+            font-size: 16px;
+            background-color: #444444;
+            padding: 3px 4px;
+        }
+    </style>
+
+      <juicy-tile-editor-form id="form"
+                              selecteditems="{{selectedItems}}"
+                              editedtiles="{{editedTiles}}"
+                              tilelists="{{tileLists}}"
+                              on-juicy-tile-editor-revert="{{revertAction}}"
+                              on-juicy-tile-editor-form-tree-changed="{{treeChangedAction}}"
+                              on-juicy-tile-editor-clear="{{clearAction}}"></juicy-tile-editor-form>
+      
+    <juicy-draggable elementid="sidebar" handleid="sidebarHeader" position="fixed" id="sidebarDrag">
+        <juicy-resizable righthandle=".resize-right" lefthandle=".resize-left" id="sidebarResize">
+            <div class="sidebar left" id="sidebar">
+                <div class="resize-right"></div>
+                <div class="resize-left"></div>
+                <span class="actions">
+                    <a href="javascript:" title="Unhide all elements" on-click="{{unhideAll}}">
+                        <i class="jte-icon-eye"></i>
+                    </a>
+                </span>
+                <h1 id="sidebarHeader">
+                    Elements
+                </h1>
+                <juicy-tile-tree id="treeView" tree="{{ tree }}"
+                                 on-juicy-tile-tree-highlight="{{treeHighlightAction}}"
+                                 on-juicy-tile-tree-highlight-extend="{{treeHighlightExtendAction}}"
+                                 on-juicy-tile-tree-highlight-remove="{{treeHighlightRemoveAction}}"
+                                 on-juicy-tile-tree-refresh-tile-list="{{refreshTileList}}"
+                                 on-juicy-tile-tree-hover="{{treeHoverAction}}"
+                                 on-juicy-tile-tree-blur="{{treeBlurAction}}"
+                                 on-juicy-tile-tree-drag-item-stop="{{treeItemDragStop}}"
+                                 on-juicy-tile-tree-item-name-changed="{{refreshForm}}"></juicy-tile-tree>
+            </div>
+        </juicy-resizable>
+    </juicy-draggable>
+
+    <juicy-highlight id="tileEdited" strokeWidth="2" strokeColor="#fd7f02" strokeOffset="2" fill="rgba(253, 127, 2, 0.1)"></juicy-highlight>
+    <juicy-highlight id="tileRollover" strokeWidth="1" strokeColor="#1E90FF" strokeOffset="2" fill="rgba(0,191,255, 0.2)"></juicy-highlight>
+    <juicy-highlight id="tileSelected" strokeWidth="1" strokeColor="#fd7f02" strokeOffset="2"></juicy-highlight>
+  </template>
+  <script src="juicy-tile-editor.js"></script>
+</polymer-element>

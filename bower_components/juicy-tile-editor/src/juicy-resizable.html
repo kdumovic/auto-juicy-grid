@@ -1,0 +1,101 @@
+﻿<link rel="import" href="../../polymer/polymer.html" />
+
+<polymer-element name="juicy-resizable" attributes="rightHandle leftHandle">
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+        </style>
+        <content id="content"></content>
+    </template>
+    <script>
+        function clearSelection() {
+            if (window.getSelection) {
+                window.getSelection().removeAllRanges();
+            } else if (document.selection) {
+                document.selection.empty();
+            }
+        }
+
+        Polymer("juicy-resizable", {
+            resizeElement: null,
+            resizeOffset: null,
+            down: false,
+            isRight: null,
+            rightHandle: null,
+            leftHandle: null,
+            domReady: function () {
+                var that = this;
+
+                this.resizeElement = this.children[0];
+
+                if (this.rightHandle) {
+                    this.rightHandle = this.querySelector(this.rightHandle);
+                    this.leftHandle = this.querySelector(this.leftHandle);
+
+                    if (this.rightHandle) {
+                        this.rightHandle.addEventListener("mousedown", function (e) {
+                            that.rightHandle.classList.add("active");
+                            that.isRight = true;
+                            that.startResize(e);
+                        });
+                    }
+
+                    if (this.leftHandle) {
+                        this.leftHandle.addEventListener("mousedown", function (e) {
+                            that.leftHandle.classList.add("active");
+                            that.isRight = false;
+                            that.startResize(e);
+                        });
+                    }
+
+                    document.addEventListener("mousemove", this.handleResize.bind(this));
+                    document.addEventListener("mouseup", this.stopResize.bind(this));
+                }
+            },
+            startResize: function (e) {
+                var rect = this.resizeElement.getBoundingClientRect();
+
+                this.resizeOffset = {
+                    left: rect.left,
+                    right: rect.right
+                };
+
+                this.down = true;
+                this.fire("juicy-resizable-start", e);
+            },
+            handleResize: function (e) {
+                if (!this.down) {
+                    return;
+                }
+
+                clearSelection();
+
+                var w = null;
+
+                if (this.isRight) {
+                    w = parseInt(e.clientX - this.resizeOffset.left + 2);
+                } else {
+                    w = parseInt(this.resizeOffset.right - e.clientX);
+                }
+
+                this.resizeElement.style.width = w + "px";
+                this.fire("juicy-resizable-handle", e);
+            },
+            stopResize: function (e) {
+                this.down = false;
+
+                if (this.rightHandle) {
+                    this.rightHandle.classList.remove("active");
+                }
+
+                if (this.leftHandle) {
+                    this.leftHandle.classList.remove("active");
+                }
+
+                this.fire("juicy-resizable-stop", e);
+            }
+        });
+    </script>
+</polymer-element>

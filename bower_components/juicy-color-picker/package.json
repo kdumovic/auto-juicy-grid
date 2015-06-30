@@ -1,0 +1,17 @@
+{
+  "name": "juicy-color-picker",
+  "version": "1.0.0",
+  "description": "<juicy-color-picker> is a Polymer color picker",
+  "main": "src/juicy-color-picker.html",
+  "directories": {},
+  "dependencies": {},
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Juicy/juicy-color-picker"
+  },
+  "bugs": {
+    "url": "https://github.com/Juicy/juicy-color-picker/issues"
+  },
+  "license": "MIT"
+}

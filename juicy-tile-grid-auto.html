@@ -1,0 +1,112 @@
+<!--
+`juicy-tile-grid element` - CSS Grid extension of `juicy-tile-list` - masonry-like Polymer Element for sortable tiles that packs efficiently without changing HTML structure (changes CSS only).
+
+@element juicy-tile-grid
+@demo https://Juicy.github.io/juicy-tile-grid/
+version: 0.1.2
+-->
+<!-- Import Polymer -->
+<link rel="import" href="bower_components/polymer/polymer.html">
+<!-- Import juicy-tile-list -->
+<link rel="import" href="bower_components/juicy-tile-grid/src/juicy-tile-grid.html">
+
+<!-- Define your custom element -->
+<polymer-element name="juicy-tile-grid-auto" extends="juicy-tile-grid" attributes="numChildDivs childDivContent selectedItems editedTiles tileLists">
+    <template>
+    <style>
+
+        /* everything below is taken as is from juicy-tile-grid */
+
+        /** our grid stuff */
+        :host([layout=grid])::shadow #container:not(.disabled),
+        :host(:not([layout]))::shadow #container:not(.disabled){
+          display: -ms-grid;
+          display: -moz-grid;
+          display: grid;
+
+          /*grid-auto-columns: 0;
+          grid-auto-rows: 0;
+          -moz-grid-auto-columns: 0;
+          -moz-grid-auto-rows: 0;*/
+        }
+        :host([layout=grid])::shadow #container:not(.disabled) > .juicy-tile,
+        :host(:not([layout]))::shadow #container:not(.disabled) > .juicy-tile,
+        :host([layout=grid])::shadow #container:not(.disabled) > .containerBackground,
+        :host(:not([layout]))::shadow #container:not(.disabled) > .containerBackground{
+            position: static;
+        }
+        :host([layout=grid])::shadow #container.animate > .juicy-tile,
+        :host(:not([layout]))::shadow #container.animate > .juicy-tile,
+        :host([layout=grid])::shadow #container.animate >.containerBackground,
+        :host(:not([layout]))::shadow #container.animate >.containerBackground  {
+            -webkit-transition: width 0.5s, height 0.5s, top 0.5s, left 0.5s, -webkit-transform 0.5s;
+            transition: width 0.5s ease-out, height 0.5s ease-out, top 0.5s ease-out, left 0.5s ease-out, transform 0.5s ease-out;
+        }
+    </style>
+    <shadow></shadow>
+    </template>
+    <script>
+        Polymer('juicy-tile-grid-auto', {
+            numChildDivs: 0,
+            childDivContent: {},
+            selectedItems: [],
+            tileLists: null,
+            editedTiles: null,
+            domReady: function() {
+                this.eventController = this; /* workaround with insertBoundHTML, see here: http://stackoverflow.com/questions/28349241/how-to-modify-existing-content-in-a-element */
+                this.super()
+            },
+            parseDeclaration: function(elementElement) {
+                // handles edge cases
+                if (Object.keys(this.childDivContent).length && !this.numChildDivs) {
+                    this.numChildDivs = Object.keys(this.childDivContent).length;
+                }
+                //console.log(this.numChildDivs);
+                //console.log(this.childDivContent);
+
+                var template = this.fetchTemplate(elementElement);
+                // make a shadow root
+                var root = this.createShadowRoot();
+                // stamp template
+                var dom = document.importNode(template.content, true);
+
+                var html = "";
+                for (i = 0; i <= this.numChildDivs; i++) {
+                    html += "<div class='gridElement' on-click='{{priorityIncrease}}'>";
+                    if (this.childDivContent[i]) {
+                        html += this.childDivContent[i];
+                    } else {
+                        html += i.toString();
+                    }
+                    html += "</div>"
+                }
+                this.injectBoundHTML(html, this);
+
+                // append to shadow dom
+                root.appendChild(dom);
+                // perform post-construction initialization tasks on shadow root
+                //this.shadowRootReady(root, template);
+                // return the created shadow root
+                this.shadowRoots[elementElement.name] = root;
+            },
+            priorityIncrease: function(event, detail, sender) {
+                console.log("Increasing priority...");
+                //console.log(this.$.container);
+                //console.log(this.$.container.children);
+                //console.log(this.$.container.children[5].children[0]);
+                console.log(this.$.container);
+                console.log(this.$.container.items);
+                sender.classList.add("clickedGridElement");
+                var new_container = this.createNewContainer('HELLO', null, {width: 100, height: 100, priority: 1.0}, false);
+                console.log(new_container);
+                this.moveToContainer(this.$.container, new_container);
+                //console.log(this.$.new_container);
+                //new_container.classList.add("gridElement");
+                //this.reprioritizeItem(this.$, true);
+                //this.editedTiles.reprioritizeItem(this.selectedItems[0], true);
+                //this.priority = this.selectedItems[0].priority;
+            }
+        });
+    </script>
+
+</polymer-element>

@@ -1,0 +1,32 @@
+{
+  "name": "Project1",
+  "version": "0.0.0",
+  "description": "Playing around with Polymer 1.0",
+  "keywords": [
+    "polymer"
+  ],
+  "authors": [
+    "Kyle Dumovic"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#^1.0.0",
+    "core-elements": "Polymer/core-elements#~0.5.6",
+    "paper-elements": "Polymer/paper-elements#~0.5.6",
+    "iron-input": "PolymerElements/iron-input#~1.0.3",
+    "jquery": "~2.1.4",
+    "juicy-tile-grid": "~0.1.2",
+    "juicy-tile-editor": "juicy/juicy-tile-editor#~0.0.6"
+  },
+  "resolutions": {
+    "polymer": "^1.0.0",
+    "webcomponentsjs": "^0.7.2"
+  }
+}

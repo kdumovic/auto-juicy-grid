@@ -1,0 +1,210 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>&lt;juicy-tile-editor&gt;</title>
+  <link rel="stylesheet" href="http://juicy.github.io/github-markdown-css/github-markdown.css">
+
+  <!-- Importing Web Component's Polyfill -->
+  <script src="../webcomponentsjs/webcomponents.js"></script>
+  <link rel="import" href="../polymer/polymer.html">
+
+  <!-- Importing Custom Elements -->
+  <link rel="import" href="../juicy-tile-list/src/juicy-tile-list.html">
+  <link rel="import" href="../juicy-tiles-setup-sync/src/juicy-tiles-setup-sync.html">
+  <link rel="import" href="src/juicy-tile-editor.html">
+  
+  <link rel="import" href="../core-localstorage/core-localstorage.html">
+
+
+  <style>
+    body {
+      padding: 50px 20px 20px 20px;
+    }
+    * {
+      margin:0px;
+      padding:0px;
+    }
+    juicy-tile-list{
+      padding: 1em;
+      box-shadow:     inset 0px 0px 10px 0px rgba(50, 50, 50, 0.6);
+    }
+    juicy-tile-list#st1{
+      width: 100%;
+      height: 600px;
+      margin: 2em 0;
+    }
+    juicy-tile-list>*{
+      box-shadow:         0px 0px 10px 0px rgba(50, 50, 50, 0.75);
+    }
+    juicy-tile-list>:first-child {
+      background:lightgreen;
+    }
+
+    juicy-tile-list>:nth-child(2) {
+      /* background:lightblue; */
+      background: rgba(173, 216, 230, 0.8);
+    }
+
+    juicy-tile-list>:nth-child(3) {
+      /*background:yellow;*/
+      background: rgba(255, 255, 0, 0.8);
+      overflow:auto;
+    }
+
+    juicy-tile-list>:nth-child(4) {
+      background:gray;
+      overflow:auto;
+    }
+
+    juicy-tile-list>:nth-child(5) {
+      background:orange;
+      overflow:auto;
+    }
+
+    #aboveOverlay {
+      position: fixed;
+      z-index: 100;
+    }
+    iframe{float:right}
+  </style>
+</head>
+<body>
+<article class="markdown-body">
+    <iframe src="http://ghbtns.com/github-btn.html?user=juicy&amp;repo=juicy-tile-editor&amp;type=fork&amp;count=true&amp;size=medium"
+allowtransparency="true" frameborder="0" scrolling="0" width="90" height="30"></iframe>
+    <iframe src="http://ghbtns.com/github-btn.html?user=juicy&amp;repo=juicy-tile-editor&amp;type=watch&amp;count=true&amp;size=medium"
+  allowtransparency="true" frameborder="0" scrolling="0" width="90" height="30"></iframe>
+
+<template bind>
+    <template if="{{editingMode}}">
+        <div id="aboveOverlay">
+            <juicy-tile-editor selectionmode></juicy-tile-editor>
+        </div>
+    </template>
+  <p>Press Ctrl or Command on your keyboard and move your mouse over an item to edit</p>
+  <label><input type="checkbox" checked="{{editingMode}}"> Show editor ({{editingMode}})</label>
+  <core-localstorage name="st1" value="{{setup}}"></core-localstorage>
+  <juicy-tiles-setup-sync storedValue="{{setup}}"></juicy-tiles-setup-sync>
+  <juicy-tile-list id="st1" setup="[[setup]]">
+    <div>Item 0 </div>
+    <div>
+      <button onclick="blockme()">Item 1</button>
+    </div>
+    <div>
+      <input value="Input2">
+    </div>
+    <div>
+      Nested tiles 1:
+      <juicy-tile-list setup="{{setup2}}">
+        <div>Subitem 0 </div>
+        <div>
+          <button>Subitem 1</button>
+        </div>
+        <div>
+          <input value="Subitem2">
+        </div>
+        <section>Subitem 3</section>
+      </juicy-tile-list>
+      <section>
+        Nested tiles 2:
+        <juicy-tile-list setup="{{setup2}}">
+          <div>Subitem 0 </div>
+          <div>
+            <button>Subitem 1</button>
+          </div>
+          <div>
+            <input value="Subitem2">
+          </div>
+          <section>Subitem 3</section>
+        </juicy-tile-list>
+      </section>
+    </div>
+    <juicy-tile-list setup="{{setup2}}">
+      <div>Subitem 0 </div>
+      <div>
+        <button>Subitem 1</button>
+      </div>
+      <div>
+        <input value="Subitem2">
+      </div>
+      <section>Subitem 3</section>
+    </juicy-tile-list>
+  </juicy-tile-list>
+</template>
+<script type="text/javascript">
+  // 011
+  // 233
+  // 2
+  //
+  // prioritized
+  //
+  // 110
+  // 233
+  // 2
+  model = {
+    editingMode: true,
+    setup:{
+      gutter: 16,
+      items: [
+        {"width": 128, "height": 100, "priority": 0.5, "id": 0},
+        {"width": 512, "height": 100, "priority": 0.48, "gutter": 8, 
+        "innerHTML": "<div style=\"background: rgba(191, 81, 236, 0.5); position: relative; top: -8px; left: -8px; height: calc(100% + 2 * 8px ); width: calc(100% + 2 * 8px ); font-size: 100px;\"></div>",
+        "items":[
+          {"width": 256, "height": 100, "priority": 0.7, "id": 1},
+          {"width": 128, "height": 100, "priority": 0.0, "id": 2}
+        ]},
+        {"width": 256, "heightAuto": true, "priority": 0.47, "id": 3}
+      ]
+    },
+    setup2: {
+      gutter: 4,
+      items: [
+        // 011
+        // 233
+        // 2
+        // prioritized
+        //
+        // 110
+        // 233
+        // 2
+        {
+          id:0,
+          priority:0.9,// 0.6,
+          height: 20,
+          width: 100
+        },
+        {
+          id:1,
+          priority:0.8,// 0.9,
+          height: 20,
+          width: 100
+        },
+        {
+          id:2,
+          priority:0.6,// 0.3,
+          height: 40,
+          width: 180
+        },
+        {
+          id:3,
+          priority:0.4,
+          height: 20,
+          width: 150
+        }
+      ]
+    }
+  };
+  document.addEventListener("polymer-ready", function(){
+    document.querySelector("template").bindingDelegate = new PolymerExpressions();
+    document.querySelector("template").model = model;
+
+  })
+  function blockme(){
+    alert("I should get blocked when editor is opened");
+  }
+</script>
+</article>
+
+</body>
+</html>

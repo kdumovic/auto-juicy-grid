@@ -1,0 +1,29 @@
+{
+  "name": "juicy-color-picker",
+  "homepage": "https://github.com/Juicy/juicy-color-picker",
+  "description": "<juicy-color-picker> is a Polymer color picker",
+  "license": "MIT",
+  "main": "src/juicy-color-picker.html",
+  "keywords": [
+    "polymer",
+    "web-components",
+    "colorpicker"
+  ],
+  "ignore": [
+    "**/.*",
+    "examples",
+    "bower_components"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer"
+  },
+  "_release": "e289524e5f",
+  "_resolution": {
+    "type": "branch",
+    "branch": "gh-pages",
+    "commit": "e289524e5f22fa1286b4a01635b72eeb11e8baba"
+  },
+  "_source": "git://github.com/Juicy/juicy-color-picker.git",
+  "_target": "gh-pages",
+  "_originalSource": "Juicy/juicy-color-picker"
+}

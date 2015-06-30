@@ -1,0 +1,209 @@
+<link rel="import" href="../../polymer/polymer.html" />
+<link rel="import" href="../../juicy-color-picker/src/juicy-color-picker.html" />
+
+<polymer-element name="juicy-border-picker" attributes="pallete value">
+    <template>
+        <style>
+            ul {
+                border: none;
+                padding: 0px;
+                margin: 0px;
+                list-style-type: none;
+                margin: 5px 0px;
+            }
+
+            ul li {
+            }
+
+            ul li:hover {
+                background-color: #F0F0F0;
+            }
+
+            ul li.selected {
+                background-color: #F1F1F1;
+            }
+
+            ul li a {
+                display: block;
+                padding: 10px 0px;
+            }
+
+            ul li a span {
+                display: block;
+                border-color: #444444;
+                border-bottom-width: 4px;
+            }
+
+            input, select {
+                height: 25px;
+                min-width: 25px;
+                width: 100%;
+                box-sizing: border-box;
+                display: block;
+                white-space: nowrap;
+                box-sizing: border-box;
+                border-radius: 1px;
+                border: none;
+                margin: 0px;
+                padding: 0px 4px;
+                font-size: 12px;
+                border: 1px solid #C0C0C0;
+            }
+
+            input.width {
+                width: 60%;
+                float: left;
+            }
+
+            select.width {
+                width: 40%;
+                float: left;
+            }
+
+            div.width {
+                overflow: auto;
+            }
+
+            div.value {
+                margin-top: 10px;
+                overflow: auto;
+            }
+
+            div.value input {
+                width: calc(100% - 25px);
+                float: left;
+            }
+
+            div.value button {
+                height: 25px;
+                width: 22px;
+                float: left;
+                margin-left: 3px;
+            }
+        </style>
+        <div class="container">
+            <div class="width">
+                <input type="text" value="{{borderWidth}}" class="width" />
+                <select class="width" value="{{borderWidthUnit}}">
+                    <option value="px">px</option>
+                    <option value="em">em</option>
+                    <option value="%">%</option>
+                </select>
+            </div>
+            <ul>
+                <template repeat="{{item in borderStyles}}">
+                    <template if="{{item == borderStyle}}">
+                        <li class="selected">
+                            <a href="javascript:" class="{{item}}" on-click="{{applyStyle}}">
+                                <span class="{{item}}" style="border-bottom-style:{{item}}"></span>
+                            </a>
+                        </li>
+                    </template>
+                    <template if="{{item != borderStyle}}">
+                        <li>
+                            <a href="javascript:" class="{{item}}" on-click="{{applyStyle}}">
+                                <span class="{{item}}" style="border-bottom-style:{{item}}"></span>
+                            </a>
+                        </li>
+                    </template>
+                </template>
+            </ul>
+            <juicy-color-picker value="{{borderColor}}" on-juicy-color-picker-value-changed="{{refreshValue}}"></juicy-color-picker>
+            <div class="value">
+                <input type="text" value="{{value}}" readonly="readonly" />
+                <button type="button" on-click="{{clearBorder}}">x</button>
+            </div>
+        </div>
+    </template>
+    <script>
+        Polymer('juicy-border-picker', {
+            borderStyles: ["solid", "dashed", "dotted", "double"],
+            borderStyle: null,
+            borderWidth: 0,
+            borderWidthUnit: "px",
+            borderColor: null,
+            inParse: false,
+            ready: function () {
+            },
+            resetInParse: function () {
+                var that = this;
+
+                setTimeout(function () {
+                    that.inParse = false;
+                }, 500);
+            },
+            refreshValue: function () {
+                if (this.inParse) {
+                    return;
+                }
+
+                this.inParse = true;
+                this.value = [this.borderStyle, this.borderWidth + this.borderWidthUnit, this.borderColor].join(" ");
+                this.resetInParse();
+            },
+            parseValue: function () {
+                if (this.inParse) {
+                    return;
+                }
+
+                this.inParse = true;
+                this.borderStyle = "";
+                this.borderWidth = "0";
+                this.borderWidthUnit = "px";
+                this.borderColor = "";
+
+                if (!this.value) {
+                    this.resetInParse();
+                    return;
+                }
+
+                var items = this.value.split(" ");
+
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+
+                    if (!item) {
+                        continue;
+                    } else if (/^\d+[.]?\d*\w+$/gi.test(item)) {
+                        this.borderWidth = parseFloat(item);
+                        this.borderWidthUnit = item.replace(/[\d\W]/gi, "");
+                    } else if (this.borderStyles.indexOf(item) >= 0) {
+                        this.borderStyle = item;
+                    } else {
+                        this.borderColor = item;
+                    }
+                }
+
+                this.resetInParse();
+            },
+            valueChanged: function () {
+                if (this.inParse) {
+                    return;
+                }
+
+                this.fire("juicy-border-picker-value-changed");
+                this.parseValue();
+            },
+            borderStyleChanged: function () {
+                this.refreshValue();
+            },
+            borderWidthChanged: function () {
+                this.refreshValue();
+            },
+            borderWidthUnitChanged: function () {
+                this.refreshValue();
+            },
+            borderColorChanger: function () {
+                this.refreshValue();
+            },
+            applyStyle: function (e) {
+                this.borderStyle = e.target.className;
+                this.refreshValue();
+            },
+            clearBorder: function () {
+                this.value = "";
+                this.valueChanged();
+            }
+        });
+    </script>
+</polymer-element>

@@ -1,0 +1,42 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>juicy-color-picker</title>
+    <link href="src/juicy-color-picker.html" rel="import" />
+    <style>
+        div {
+            width: 120px;
+            padding: 5px;
+            border: 1px solid #C0C0C0;
+            margin: 0px 15px 15px 0px;
+            float: left;
+        }
+    </style>
+    <script>
+        window.addEventListener('polymer-ready', function (e) {
+            var color = document.querySelector("#color");
+            var background = document.querySelector("#background");
+            var h1 = document.querySelector("h1");
+
+            color.addEventListener("juicy-color-picker-value-changed", function () {
+                h1.style.color = this.value;
+            });
+
+            background.addEventListener("juicy-color-picker-value-changed", function () {
+                h1.style.backgroundColor = this.value;
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Select a color foor me</h1>
+    <div>
+        Text color:
+        <juicy-color-picker id="color" pallete="crayons"></juicy-color-picker>
+    </div>
+    <div>
+        Background:
+        <juicy-color-picker id="background" pallete="flat"></juicy-color-picker>
+    </div>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="import" href="bower_components/polymer/polymer.html">
+    <script src="bower_components/webcomponentsjs/webcomponents.js"></script>
+    <!-- <script src="bower_components/jquery/dist/jquery.min.js"></script> -->
+    <!-- <link rel="import" href="bower_components/juicy-tile-grid/src/juicy-tile-grid.html"> -->
+    <link rel="import" href="juicy-tile-grid-auto.html">
+    <style>
+      juicy-tile-grid-auto {
+        border: 2px solid red;
+        padding: 0.5em;
+      }
+      juicy-tile-grid-auto div {
+        border: 2px solid black;
+        font-family: lobster;
+        font-size: 1em;
+        text-align: center;
+        height: 100%;
+      }
+      .gridElement {
+        background-color: cyan;
+      }
+      .clickedGridElement {
+        background-color: red;
+      }
+      .containerBackground {
+        background-color: yellow !important;
+      }
+      @supports( (display: grid) or (display: -ms-grid) ) {
+        .feature-detection {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="feature-detection">
+         This uses <a href="http://www.w3.org/TR/css3-grid-layout/">CSS3 Grid Layout</a>, which is <a href="http://caniuse.com/#search=css%20grid">not widely supported</a>. In Chrome you can enable it through the "experimental Web Platform features" flag in <code>chrome://flags</code> In IE we use it with <code>-ms</code> prefix, which implements a pretty old spec, but works. For other browsers, you need to use polyfill.
+    </div>
+    <h1>juicy-tile-grid-auto*</h1>
+    <template bind>
+      <juicy-tile-grid-auto setup={{setup}} refreshonresize numChildDivs="250">
+      </juicy-tile-grid-auto>
+    </template>
+    <script type="text/javascript">
+      document.addEventListener("polymer-ready", function() {
+        var items = [];
+        MAX_ELEMS = 250;
+        for (i = 0; i <= MAX_ELEMS; i++ ) {
+          items.push({
+            id: i,
+            priority: 1.0 - ( 0.0 + i * ( 1.0 / MAX_ELEMS ) ),
+            height: 50,
+            width: 50
+          });
+        }
+        var model = {
+          setup: {
+            gutter: 8,
+            items: items
+          }
+        };
+        document.querySelector("template").model = model;
+      });
+    </script>
+  </body>
+</html>

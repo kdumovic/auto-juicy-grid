@@ -1,0 +1,227 @@
+<!--
+`juicy-tile-grid element` - CSS Grid extension of `juicy-tile-list` - masonry-like Polymer Element for sortable tiles that packs efficiently without changing HTML structure (changes CSS only).
+
+@element juicy-tile-grid
+@demo https://Juicy.github.io/juicy-tile-grid/
+version: 0.1.2
+-->
+<!-- Import Polymer -->
+<link rel="import" href="../../polymer/polymer.html">
+<!-- Import juicy-tile-list -->
+<link rel="import" href="../../juicy-tile-list/src/juicy-tile-list.html">
+
+<!-- Define your custom element -->
+<polymer-element name="juicy-tile-grid" extends="juicy-tile-list" attributes="layout">
+
+    <template>
+    <style>
+        /** our grid stuff */
+        :host([layout=grid])::shadow #container:not(.disabled),
+        :host(:not([layout]))::shadow #container:not(.disabled){
+          display: -ms-grid;
+          display: -moz-grid;
+          display: grid;
+
+          /*grid-auto-columns: 0;
+          grid-auto-rows: 0;
+          -moz-grid-auto-columns: 0;
+          -moz-grid-auto-rows: 0;*/
+        }
+        :host([layout=grid])::shadow #container:not(.disabled) > .juicy-tile,
+        :host(:not([layout]))::shadow #container:not(.disabled) > .juicy-tile,
+        :host([layout=grid])::shadow #container:not(.disabled) > .containerBackground,
+        :host(:not([layout]))::shadow #container:not(.disabled) > .containerBackground{
+            position: static;
+        }
+        :host([layout=grid])::shadow #container.animate > .juicy-tile,
+        :host(:not([layout]))::shadow #container.animate > .juicy-tile,
+        :host([layout=grid])::shadow #container.animate >.containerBackground,
+        :host(:not([layout]))::shadow #container.animate >.containerBackground  {
+            -webkit-transition: width 0.5s, height 0.5s, top 0.5s, left 0.5s, -webkit-transform 0.5s;
+            transition: width 0.5s ease-out, height 0.5s ease-out, top 0.5s ease-out, left 0.5s ease-out, transform 0.5s ease-out;
+        }
+    </style>
+    <shadow></shadow>
+    </template>
+    <script>
+        Polymer('juicy-tile-grid', {
+            layout: "grid",
+            layoutChanged: function(oldVal, newVal){
+                // afterDomReady: this.refresh();
+            },
+            parseDeclaration: function(elementElement) {
+              var template = this.fetchTemplate(elementElement);
+              // make a shadow root
+              var root = this.createShadowRoot();
+              // stamp template
+              var dom = document.importNode(template.content, true);
+              // append to shadow dom
+              root.appendChild(dom);
+              // perform post-construction initialization tasks on shadow root
+              //this.shadowRootReady(root, template);
+              // return the created shadow root
+              this.shadowRoots[elementElement.name] = root;
+            },
+            renderer: function grid( packedTree, tiles, offsetX, offsetY ){
+                if(this.layout != "grid"){
+                    return this.super( [packedTree, tiles, offsetX, offsetY] );
+                }
+                var cols = []; // just position, as Object Numer, with dynamic property 
+                //{position: px, dynamic: boolean}
+                var dynamicColPos = {};
+                var rows = [];
+                var dynamicRowPos = {};
+
+                /** 
+                 * Add new line at given position if there is none.
+                 * @param {Array} array of lines
+                 * @param {Number} position line position
+                 * @returns line number for line at given position
+                */
+                function drawLine( array, position ){
+                    var len = array.length, newLine;
+                    while(len-- && array[len] > position){
+                    // while(len-- && array[len].position > position){  
+                    }
+                    if(len>-1 && array[len] == position){
+                    // if(len>-1 && array[len].position == position){
+                        return len;
+                    } else { 
+                        array.splice( len+1, 0, position ); 
+                        // array.splice( len+1, 0, {position: position, dynamic: !!dynamic});
+                        return len+1;
+                    }
+                }
+                function drawLinesFromTree( node, offsetX, offsetY ){
+                    var ilen = node.items.length;
+                    while(ilen--){
+                        var item = node.items[ilen];
+                        if(item.hidden){
+                            continue;
+                        }
+
+                        drawLine(cols, offsetX + item.x);
+                        drawLine(cols, offsetX + item.x + item.width);
+                        // if any tile is dynamic, then line is dynamic
+                        dynamicColPos[ offsetX + item.x ] |= item.widthDynamic;
+
+                        drawLine(rows, offsetY + item.y);
+                        drawLine(rows, offsetY + item.y + item.height);
+                        // if any tile is dynamic, then line is dynamic
+                        dynamicRowPos[ offsetY + item.y ] |= item.heightDynamic;
+
+                        if(item.items){
+                            drawLinesFromTree( item, offsetX + item.x, offsetY + item.y);
+                        }
+                    }
+                }
+                drawLinesFromTree(packedTree, 0,0);
+                var that = this;
+                function renderGrid(node, tiles, offsetX, offsetY, hideAll){
+                    var childNodeNo = node.items.length,
+                        child,
+                        element, elementStyle, left, top, colNo, rowNo, hidden;  
+                    while(childNodeNo--){
+                        child = node.items[childNodeNo]
+                        element = tiles[ child.id ];
+                        if(!element) {
+                            continue; //if element is not found, perhaps DOM was not yet rendered? Skip gracefully
+                        }
+                        elementStyle = element.style;
+                        // hide items marked as hidden ;)
+                        hidden = hideAll || child.hidden;
+                        if(hidden){
+                            elementStyle.display = "none";
+                            //continue; // do not process children?
+                        } else {
+                          // force default - block 
+                            elementStyle.display = "";
+                            left = ( child.x || 0 ) + offsetX; 
+                            top = ( child.y || 0 ) + offsetY;
+                            var oversize = child.oversize || 0;
+                            colNo = cols.indexOf( left ); 
+                            rowNo = rows.indexOf( top ); 
+                            // cols are 1 index based
+                            elementStyle["grid-column"] = ( colNo + 1 ) + " / span " + ( cols.indexOf( left + child.width ) - colNo );
+                            // rows are 1 index based
+                            elementStyle["grid-row"]= ( rowNo + 1 ) + " / span " + ( rows.indexOf( top + child.height ) -rowNo );
+                            //IE support
+                                elementStyle["-ms-grid-column"] = ( colNo + 1 );
+                                elementStyle["-ms-grid-column-span"] = ( cols.indexOf( left + child.width ) - colNo );
+                                elementStyle["-ms-grid-row"]= ( rowNo + 1 );
+                                elementStyle["-ms-grid-row-span"]= ( rows.indexOf( top + child.height ) -rowNo );
+
+
+                            elementStyle.width = child.widthAdaptive || child.widthDynamic ? "100%" : child.width + "px";
+                            // elementStyle.height = ( child.height /*+ 2 * oversize*/ ) + "px";
+                            elementStyle.height = child.heightAdaptive || child.heightDynamic ? "100%" : child.height + "px";
+                            if (child.background !== undefined) {
+                                elementStyle.backgroundColor = child.background || "transparent";
+                            } else {
+                                elementStyle.backgroundColor = "";
+                            }
+                            elementStyle.outline = child.outline || "";
+
+                            if (oversize) {
+                                elementStyle.padding = oversize + "px";
+                                elementStyle.margin = "-" + oversize + "px";
+                            } else {
+                                elementStyle.padding = "";
+                                elementStyle.margin = "";
+                            }
+                        }
+
+                        if(child.items){// virtual container
+                            renderGrid( child, tiles, left, top, hidden);
+                        }
+                    }
+                }
+
+                /**
+                 * Calculate line widths ( line `n` position - line `n-1` position), 
+                 * take dynamic into account `minmax( _width_ px, max-content )`
+                 * @param  {Array<Number>} array  array of lines' positions
+                 * @param  {Object<Boolean>} dynamic Map  of dynamic lines positions
+                 * @return {String}         `grid template-(rows|columns)` compatible setup.
+                 */
+                function lineWidths(array, dynamic){
+                    var alen = array.length - 1, //last one is the border of our grid
+                        str = "";
+                    while(alen-- >0){
+                        // str = "minmax( " + (array[alen] - array[alen-1]) + "px , max-content ) " + str;
+                        // str = (array[alen] - array[alen-1]) + "px " + str;
+                        if( dynamic[ array[alen] ] ){
+                           str = "minmax( " + (array[alen+1] - array[alen]) + "px , max-content ) " + str; 
+                        } else {
+
+                           str = (array[alen+1] - array[alen]) + "px " + str; 
+                        }
+                    }
+                    return str;
+                }
+                var containerStyle = this.$.container.style;
+                // containerStyle.display = "-ms-grid";
+                // containerStyle.display = "grid";
+                renderGrid( packedTree, tiles, 0,0);
+
+                containerStyle["grid-template-columns"] = containerStyle["-ms-grid-columns"] = 
+                    lineWidths(cols, dynamicColPos);
+
+                containerStyle["grid-template-rows"] = containerStyle["-ms-grid-rows"] = 
+                    lineWidths(rows, dynamicRowPos);
+                // absolute renderer do it as well
+                    containerStyle.height = "auto";
+
+
+              
+            },
+            packItems: function packDOM2Grid(){
+                this.$.container.classList.add("disabled");
+                var packedTree = this.super( arguments );
+                this.$.container.classList.remove("disabled");
+                return packedTree;
+            }
+        });
+    </script>
+
+</polymer-element>

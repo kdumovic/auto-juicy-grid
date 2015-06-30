@@ -1,0 +1,506 @@
+﻿<link rel="import" href="../../polymer/polymer.html" />
+<link rel="import" href="../../core-selector/core-selector.html" />
+<link rel="import" href="../../juicy-popover/src/juicy-popover.html" />
+<link rel="import" href="../../juicy-color-picker/src/juicy-color-picker.html" />
+<link rel="import" href="juicy-border-picker.html" />
+
+<polymer-element name="juicy-tile-editor-form" attributes="selectedItems editedTiles tileLists">
+    <template>
+        <link href="css/jte-fontawesome.css" rel="stylesheet" />
+        <style>
+            .editablesContainer {
+                display: flex;
+                font-family: 'Lucida Grande', 'Segoe UI', Ubuntu, Cantarell, sans-serif;
+                max-width: 1200px;
+                min-width: 800px;
+            }
+
+            .editableGroup {
+                flex: 1 1 auto;
+                display: flex;
+            }
+
+            label {
+                display: inline-block;
+                white-space: nowrap;
+            }
+
+            juicy-popover label.editable {
+                color: black;
+            }
+
+            .val {
+                display: inline-block;
+                width: 60px;
+            }
+
+            .toolbar-item[disabled],
+            button[disabled],
+            div[disabled] {
+                opacity: 0.25;
+                pointer-events: none;
+            }
+
+            button {
+                min-height: 1.45em;
+                min-width: 1.45em;
+                display: inline-block;
+                padding: 0 2px;
+                margin: 0;
+                vertical-align: top;
+                line-height: 1;
+                font-size: 14px;
+                color: #243140;
+                text-align: center;
+                text-shadow: 0 1px rgba(255,255,255,0.2);
+                background: #e5e7ed;
+                border: 0;
+                border-radius: 2px;
+                cursor: pointer;
+                -webkit-box-sizing: border-box;
+                -moz-box-sizing: border-box;
+                box-sizing: border-box;
+            }
+
+            button:hover {
+                color: #243140;
+                background: #dcdfe7;
+            }
+
+            button:active,
+            .expanded button.handle {
+                color: #1d2938;
+                background: #cdd1dc;
+            }
+
+            .expandable {
+                background: #fff;
+                border: 1px solid rgba(0, 0, 0, .2);
+                box-shadow: 0 5px 10px rgba(0, 0, 0, .2);
+                padding: 5px;
+                max-width: 144px;
+                white-space: normal;
+            }
+
+            .expandable.wide {
+                width: auto;
+                max-width: none;
+            }
+
+            .expandable textarea {
+                width: 40em;
+                height: 5em;
+            }
+
+            .drop-down .expandable {
+                max-width: none;
+            }
+            
+            .sourceActions {
+                text-align: right;
+            }
+
+            h4 {
+                margin: 0;
+                display: inline;
+                font-weight: normal;
+            }
+
+            .toolbar-item {
+                display: flex;
+                flex-direction: column;
+                margin-left: 10px;
+            }
+
+            .toolbar-item-wrapper {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .toolbar-button {
+                height: 25px;
+                min-width: 30px;
+                display: block;
+                white-space: nowrap;
+                box-sizing: border-box;
+                border-radius: 1px;
+                border: none;
+                padding: 0px;
+                margin: 0px;
+                font-size: 15px;
+            }
+
+            .toolbar-button * {
+                height: 20px;
+                box-sizing: border-box;
+            }
+
+            .toolbar-button input {
+                background-color: transparent;
+            }
+
+            .toolbar-button input {
+                border: 1px solid #333;
+                font-size: 12px;
+            }
+
+            input.toolbar-button {
+                font-size: 12px;
+            }
+
+            .toolbar-button button {
+                margin: 0 0 0 -1px;
+            }
+
+            input.toolbar-button {
+                padding: 0px 4px;
+            }
+
+            .toolbar-button-background {
+                background: white;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+            }
+            /*.toolbar-button*/
+            .revert {
+                transform: scale(1, -1);
+            }
+
+            .directionGroup {
+                background-color: #e5e7ed;
+                border-radius: 1px;
+                height: 25px;
+            }
+
+            .directionGroup .toolbar-button {
+                float: left;
+            }
+            /*.toolbar-button*/
+            .direction:not([checked]) {
+                /*box-shadow: 0px 0 7px black inset;*/
+                background-color: transparent;
+            }
+            /*.toolbar-button*/
+            .direction[checked] {
+                box-shadow: 0px 0 7px black;
+            }
+
+            .toolbar-label {
+                font-size: 11px;
+                text-align: center;
+                display: block;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 150px;
+                left: 10px;
+                width: 200px;
+                height: calc(100% - 160px);
+                background: white;
+                border: 1px solid black;
+                opacity: 0.8;
+                overflow: auto;
+            }
+
+            .sidebar /deep/ #menu {
+                margin-left: 10px;
+            }
+
+            .button-column {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .button-column button {
+                margin-top: 4px;
+            }
+
+            .button-column button:first-child {
+                margin-top: 0;
+            }
+
+            .drop-down {
+                white-space: nowrap;
+                font-size: 0px;
+            }
+
+            .drop-down button {
+                display: inline-block;
+                font-size: 11px;
+                border-radius: 1px 0px 0px 1px;
+            }
+
+            .drop-down .handle {
+                vertical-align: middle;
+                min-width: 15px;
+                border-left: 1px solid #C0C0C0;
+                border-radius: 0px 1px 1px 0px;
+                margin-left: -1px;
+            }
+
+            .drop-down .expandable button {
+                display: block;
+                background-color: transparent;
+                border-radius: 0px;
+                width: 100%;
+                text-align: left;
+                padding: 0px 4px;
+            }
+
+            .drop-down .expandable button:hover {
+                background-color: #F0F0F0;
+            }
+
+            hr {
+                border: 0;
+                background-color: #ddd;
+                height: 1px;
+                margin: 10px 0;
+            }
+        </style>
+        <div class="editablesContainer" on-click="{{applyChange}}" on-keyup="{{applyChange}}">
+            <div class="editableGroup" disable?="{{!editedTiles.sync}}">
+                <div class="toolbar-item" disabled?="{{!modified}}">
+                    <button class="toolbar-button" on-click="{{saveChanges}}">
+                        <i class="jte-icon-floppy"></i>
+                    </button>
+                    <label class="toolbar-label">Save</label>
+                </div>
+                <div class="toolbar-item" disabled?="{{!modified}}">
+                    <button class="toolbar-button revert" on-click="{{revertChanges}}"><i class="jte-icon-ccw"></i></button>
+                    <label class="toolbar-label">
+                        Revert
+                    </label>
+                </div>
+
+            </div>
+            <div class="editableGroup" disable?="{{!editedTiles.sync}}">
+                <div class="toolbar-item">
+                    <div class="drop-down">
+                        <button class="toolbar-button" on-click="{{clearConfig}}">
+                            <i class="jte-icon-eraser"></i>
+                        </button>
+                        <juicy-popover on-juicy-popover-expand="{{popoverExpand}}" on-juicy-popover-collapse="{{popoverCollapse}}">
+                            <button class="handle toolbar-button">
+                                <i class="jte-icon-angle-down"></i>
+                            </button>
+                            <div class="expandable">
+                                <div>
+                                    <button class="toolbar-button" on-click="{{clearConfig}}">Clear styles</button>
+                                </div>
+                                <div disabled?="{{!isSelection}}">
+                                    <button type="button" class="toolbar-button" title="Reset styles for selected elements" on-click="{{resetStyles}}">Reset styles for selected elements</button>
+                                </div>
+                            </div>
+                        </juicy-popover>
+                    </div>
+                    <label class="toolbar-label">Clear</label>
+                </div>
+
+                <div class="toolbar-item">
+                    <juicy-popover on-juicy-popover-expand="{{popoverExpand}}" on-juicy-popover-collapse="{{popoverCollapse}}">
+                        <button class="handle toolbar-button">
+                            <i class="jte-icon-wrench"></i>
+                        </button>
+                        <div class="expandable wide">
+                            <textarea value="{{source}}"></textarea>
+                            <div class="sourceActions">
+                                <button class="editable" on-click="{{applySource}}">Apply</button>
+                            </div>
+                        </div>
+                    </juicy-popover>
+                    <label class="toolbar-label">Source</label>
+                </div>
+            </div>
+
+            <div class="editableGroup">
+
+                <div class="toolbar-item" disabled?="{{!isContainer}}">
+                    <div class="directionGroup">
+                        <button class="toolbar-button direction"
+                                on-click="{{ changeDirection }}"
+                                role="radio"
+                                aria-checked?="{{!direction || direction == 'rightDown'}}"
+                                checked?="{{!direction || direction == 'rightDown'}}"
+                                value="rightDown">
+                            <i class="jte-icon-right-hand"></i>
+                        </button>
+                        <button class="toolbar-button direction"
+                                on-click="{{ changeDirection }}"
+                                role="radio"
+                                aria-checked?="{{direction == 'downRight'}}"
+                                checked?="{{direction == 'downRight'}}"
+                                value="downRight">
+                            <i class="jte-icon-down-hand"></i>
+                        </button>
+                    </div>
+                    <label class="toolbar-label">Direction</label>
+                </div>
+
+                <div class="toolbar-item" disabled?="{{!isContainer}}" data-applyvalue="gutter">
+                    <juicy-popover on-juicy-popover-expand="{{popoverExpand}}" on-juicy-popover-collapse="{{popoverCollapse}}">
+                        <input class="handle toolbar-button val" placeholder="multiple" value="{{gutter | toNumber}}">
+                        <div class="expandable">
+                            <button class="editable" on-click="{{gutterIncrease}}">+</button>
+                            <button class="editable" on-click="{{gutterDecrease}}">-</button>
+                        </div>
+                    </juicy-popover>
+                    <label class="toolbar-label">Gutter</label>
+                </div>
+
+                <div class="toolbar-item" title="Supported only for virtual groups in juicy-tile-list or in juicy-tile-grid with absolute layout.">
+                    <div class="toolbar-item-wrapper" disabled?="{{!isContainer || layout!='absolute'}}" data-applyvalue="oversize">
+                        <juicy-popover on-juicy-popover-expand="{{popoverExpand}}" on-juicy-popover-collapse="{{popoverCollapse}}">
+                            <input class="handle toolbar-button val" placeholder="multiple" value="{{oversize}}">
+                            <div class="expandable">
+                                <button class="editable" on-click="{{oversizeIncrease}}">+</button>
+                                <button class="editable" on-click="{{oversizeDecrease}}">-</button>
+                            </div>
+                        </juicy-popover>
+                        <label class="toolbar-label">Oversize</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="editableGroup">
+                <div class="toolbar-item" disabled?="{{!isSelection || !isGroupable}}">
+                    <div class="drop-down">
+                        <button class="toolbar-button" title="Create a new line group from selected elements" on-click="{{newBlockGroupFromSelection}}">
+                            <i class="jte-icon-plus-squared-alt"></i>
+                        </button>
+                        <juicy-popover on-juicy-popover-expand="{{popoverExpand}}" on-juicy-popover-collapse="{{popoverCollapse}}">
+                            <button class="toolbar-button handle">
+                                <i class="jte-icon-angle-down"></i>
+                            </button>
+                            <div class="expandable">
+                                <div>
+                                    <button class="toolbar-button" title="Create a new line group from selected elements" on-click="{{newBlockGroupFromSelection}}">
+                                        New line group from selection
+                                    </button>
+                                </div>
+                                <div>
+                                    <button class="toolbar-button" title="Create a new group from selected elements" on-click="{{newInlineGroupFromSelection}}">
+                                        New group from selection
+                                    </button>
+                                </div>
+                                <div>
+                                    <button class="toolbar-button" title="Create a new empty group after selected element" on-click="{{newBlockEmptyGroup}}">
+                                        New empty group
+                                    </button>
+                                </div>
+                            </div>
+                        </juicy-popover>
+                    </div>
+                    <label class="toolbar-label">Group</label>
+                </div>
+
+                <div class="toolbar-item" disabled?="{{!isSelection}}">
+                    <button class="toolbar-button" title="Move selected elements to the same group" on-click="{{moveSelectionToEditedItemContainer}}">
+                        <i class="jte-icon-login"></i>
+                    </button>
+                    <label class="toolbar-label">To group</label>
+                </div>
+
+                <div class="toolbar-item" disabled?="{{!isRemovable}}">
+                    <button class="toolbar-button" on-click="{{deleteContainer}}" title="Ungroup selected item">
+                        <i class="jte-icon-minus-squared-alt"></i>
+                    </button>
+                    <label class="toolbar-label">Ungroup</label>
+                </div>
+
+                <div class="toolbar-item" disabled?="{{!isSingleSelection || !isGroup}}" data-applyvalue="content">
+                    <juicy-popover on-juicy-popover-expand="{{popoverExpand}}" on-juicy-popover-collapse="{{popoverCollapse}}">
+                        <button class="handle toolbar-button">
+                            <i class="jte-icon-code"></i>
+                        </button>
+                        <div class="expandable wide">
+                            <textarea value="{{content}}"></textarea>
+                        </div>
+                    </juicy-popover>
+                    <label class="toolbar-label">HTML</label>
+                </div>
+
+            </div>
+            <div class="editableGroup">
+
+                <div class="toolbar-item" disabled?="{{!isSelection}}" data-applyvalue="background">
+                    <juicy-popover on-juicy-popover-expand="{{popoverExpand}}" on-juicy-popover-collapse="{{popoverCollapse}}">
+                        <button class="handle toolbar-button toolbar-button-background" style='background: {{background}}'>&nbsp;</button>
+                        <div class="expandable">
+                            <juicy-color-picker value="{{background}}" on-juicy-color-picker-value-changed="{{applyChange}}"></juicy-color-picker>
+                        </div>
+                    </juicy-popover>
+                    <label class="toolbar-label">Fill</label>
+                </div>
+
+                <div class="toolbar-item" disabled?="{{!isSelection}}" data-applyvalue="outline">
+                    <juicy-popover on-juicy-popover-expand="{{popoverExpand}}" on-juicy-popover-collapse="{{popoverCollapse}}">
+                        <button class="handle toolbar-button toolbar-button-background">
+                            <span style="margin-top: -10px; width: 100%; display: inline-block; border-bottom: {{outline}}"></span>
+                        </button>
+                        <div class="expandable">
+                            <juicy-border-picker value="{{outline}}" on-juicy-border-picker-value-changed="{{applyChange}}"></juicy-border-picker>
+                        </div>
+                    </juicy-popover>
+                    <label class="toolbar-label">Outline</label>
+                </div>
+
+                <div class="toolbar-item" disabled?="{{!isSelection}}" data-applyvalue="width">
+                    <juicy-popover on-juicy-popover-expand="{{popoverExpand}}" on-juicy-popover-collapse="{{popoverCollapse}}">
+                        <input placeholder="multiple" class="handle toolbar-button val" value="{{width}}" disabled?="{{widthAuto}}">
+                        <div class="expandable">
+                            <button class="editable" on-click="{{widthIncrease}}" disabled?="{{widthAuto}}">+</button>
+                            <button class="editable" on-click="{{widthDecrease}}" disabled?="{{widthAuto}}">-</button>
+                            <label class="editable"><input id="widthAutoCheckbox" type="checkbox" data-applyvalue="widthAuto" checked="{{widthAuto}}"> auto</label>
+                            <hr>
+                            <div class="button-column">
+                                <button value="100%" on-click="{{setValueFromButton}}" disabled?="{{widthAuto}}">100%</button>
+                                <button value="75%" on-click="{{setValueFromButton}}" disabled?="{{widthAuto}}">75%</button>
+                                <button value="50%" on-click="{{setValueFromButton}}" disabled?="{{widthAuto}}">50%</button>
+                                <button value="25%" on-click="{{setValueFromButton}}" disabled?="{{widthAuto}}">25%</button>
+                            </div>
+                        </div>
+                    </juicy-popover>
+                    <label class="toolbar-label">Width</label>
+                </div>
+
+                <div class="toolbar-item" disabled?="{{!isSelection}}" data-applyvalue="height">
+                    <juicy-popover on-juicy-popover-expand="{{popoverExpand}}" on-juicy-popover-collapse="{{popoverCollapse}}">
+                        <input placeholder="multiple" class="handle toolbar-button val" value="{{height}}" disabled?="{{heightAuto}}">
+                        <div class="expandable">
+                            <button class="editable" on-click="{{heightIncrease}}" disabled?="{{heightAuto}}">+</button>
+                            <button class="editable" on-click="{{heightDecrease}}" disabled?="{{heightAuto}}">-</button>
+                            <label class="editable"><input id="heightAutoCheckbox" type="checkbox" data-applyvalue="heightAuto" checked="{{heightAuto}}"> auto</label>
+                            <div title="Supported only in juicy-tile-grid with grid layout.">
+                                <div disabled?="{{ editedTiles.tagName == 'JUICY-TILE-LIST' || layout=='absolute'}}">
+                                    <label class="editable"><input id="heightDynamicCheckbox" type="checkbox" data-applyvalue="heightDynamic" checked="{{heightDynamic}}"> dynamic</label>
+                                    <label class="editable"><input id="heightAdaptiveCheckbox" type="checkbox" data-applyvalue="heightAdaptive" checked="{{heightAdaptive}}"> adaptive</label>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="button-column">
+                                <button value="100%" on-click="{{setValueFromButton}}" disabled?="{{widthAuto}}">100%</button>
+                                <button value="75%" on-click="{{setValueFromButton}}" disabled?="{{widthAuto}}">75%</button>
+                                <button value="50%" on-click="{{setValueFromButton}}" disabled?="{{widthAuto}}">50%</button>
+                                <button value="25%" on-click="{{setValueFromButton}}" disabled?="{{widthAuto}}">25%</button>
+                            </div>
+                        </div>
+                    </juicy-popover>
+                    <label class="toolbar-label">Height</label>
+                </div>
+
+                <div class="toolbar-item" disabled?="{{!isSingleSelection}}" data-applyvalue="priority">
+                    <juicy-popover on-juicy-popover-expand="{{popoverExpand}}" on-juicy-popover-collapse="{{popoverCollapse}}">
+                        <input class="handle toolbar-button val" value="{{priority}}" disabled>
+                        <div class="expandable">
+                            <button class="editable" on-click="{{priorityIncrease}}" disabled?="{{!isSingleSelection}}">+</button>
+                            <button class="editable" on-click="{{priorityDecrease}}" disabled?="{{!isSingleSelection}}">-</button>
+                        </div>
+                    </juicy-popover>
+                    <label class="toolbar-label">Priority</label>
+                </div>
+            </div>
+        </div>
+    </template>
+    <script src="juicy-tile-editor-form.js"></script>
+</polymer-element>

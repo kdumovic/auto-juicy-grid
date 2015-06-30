@@ -1,0 +1,296 @@
+<link rel="import" href="../../polymer/polymer.html" />
+<link rel="import" href="juicy-toggle-icon-button.html" />
+<link rel="import" href="juicy-draggable.html" />
+
+<polymer-element name="juicy-tile-tree" attributes="tree">
+    <template>
+        <link href="css/jte-fontawesome.css" rel="stylesheet" />
+        <style>
+            :host {
+                overflow: auto;
+                height: calc(100% - 35px);
+                position: relative;
+                display: block;
+                width: 100%;
+            }
+
+            ul {
+                margin-top: 0px;
+                list-style: none;
+                padding: 0;
+            }
+
+            li {
+                white-space: nowrap;
+                position: relative;
+            }
+
+            .element-label {
+                cursor: default;
+                padding: 1px 4px 2px 4px;
+                border-radius: 2px;
+                position: relative;
+                box-sizing: border-box;
+                height: 26px;
+            }
+            
+            .element-label.highlight {
+                background-color: #01629E;
+                color: white;
+            }
+
+            .element-label:hover .visibility {
+                display: block;
+            }
+
+            .element-label.highlight .visibility {
+                background-color:#01629e;
+            }
+            
+            .element-label div.txt {
+                white-space: nowrap;
+            }
+
+            i.jte-icon, juicy-toggle-icon-button {
+                line-height: 1em;
+            }
+            
+            juicy-toggle-icon-button.expand {
+                position: absolute;
+                top: 6px;
+                left: -17px;
+            }
+
+            .blurred {
+                opacity: 0.5;
+            }
+
+            .drag-helper {
+                display: none;
+                background-color: #fff5bc;
+                border: #ffd800;
+                color: black;
+                padding: 1px 4px;
+                line-height: normal;
+                opacity: 0.8;
+            }
+
+            .drag-helper.dragging {
+                display: block;
+            }
+
+            juicy-draggable {
+                /*cursor: move;*/
+            }
+
+            .drop-item.drag-hover {
+                background-color: #bdf337;
+                color: #404040;
+            }
+
+            .visibility {
+                position: absolute;
+                top: 0px;
+                right: 0px;
+                display: none;
+                padding: 4px 6px 7px 6px;
+                border-radius: 2px;
+                box-sizing: border-box;
+                height: 26px;
+            }
+
+            .visibility[checked] {
+                display: block;
+            }
+
+            li.collapsed > ul {
+                display: none;
+            }
+
+            .item-name {
+                width: 100%;
+                border: 1px solid transparent;
+                color: white;
+                background-color: transparent;
+                vertical-align: middle;
+                padding: 2px 4px;
+                box-sizing: border-box;
+                font-size: 11px;
+            }
+
+            .item-name:focus {
+                outline: none;
+            }
+
+            .item-name.active {
+                border-color: white;
+            }
+
+            i.jte-icon ~ .item-name {
+                width: calc(100% - 16px);
+            }
+
+            .item-name::selection {
+                background-color: #ffd800;
+                color: black;
+            }
+
+            /* indentation of tree levels */
+            
+            ul .element-label,
+            ul .expand {
+                padding-left: calc(1 * 14px + 6px);
+            }
+            
+            ul ul .element-label,
+            ul ul .expand {
+                padding-left: calc(2 * 14px + 6px);
+            }
+            
+            ul ul ul .element-label,
+            ul ul ul .expand {
+                padding-left: calc(3 * 14px + 6px);
+            }
+            
+            ul ul ul ul .element-label,
+            ul ul ul ul .expand {
+                padding-left: calc(4 * 14px + 6px);
+            }
+            
+            ul ul ul ul ul .element-label,
+            ul ul ul ul ul .expand {
+                padding-left: calc(5 * 14px + 6px);
+            }
+            
+            ul ul ul ul ul ul .element-label,
+            ul ul ul ul ul ul .expand {
+                padding-left: calc(6 * 14px + 6px);
+            }
+            
+            ul ul ul ul ul ul ul .element-label,
+            ul ul ul ul ul ul ul .expand {
+                padding-left: calc(7 * 14px + 6px);
+            }
+            
+            ul ul ul ul ul ul ul ul .element-label,
+            ul ul ul ul ul ul ul ul .expand {
+                padding-left: calc(8 * 14px + 6px);
+            }
+            
+            ul ul ul ul ul ul ul ul ul .element-label,
+            ul ul ul ul ul ul ul ul ul .expand {
+                padding-left: calc(9 * 14px + 6px);
+            }
+            
+            ul ul ul ul ul ul ul ul ul ul .element-label,
+            ul ul ul ul ul ul ul ul ul ul .expand {
+                padding-left: calc(10 * 14px + 6px);
+            }
+            
+            ul ul ul ul ul ul ul ul ul ul ul .element-label,
+            ul ul ul ul ul ul ul ul ul ul ul .expand {
+                padding-left: calc(11 * 14px + 6px);
+            }
+            
+            ul ul ul ul ul ul ul ul ul ul ul ul .element-label,
+            ul ul ul ul ul ul ul ul ul ul ul ul .expand {
+                padding-left: calc(12 * 14px + 6px);
+            }
+            
+            ul ul ul ul ul ul ul ul ul ul ul ul ul .element-label,
+            ul ul ul ul ul ul ul ul ul ul ul ul ul .expand {
+                padding-left: calc(13 * 14px + 6px);
+            }
+            
+            ul ul ul ul ul ul ul ul ul ul ul ul ul ul .element-label,
+            ul ul ul ul ul ul ul ul ul ul ul ul ul ul .expand {
+                padding-left: calc(14 * 14px + 6px);
+            }
+            
+            ul ul ul ul ul ul ul ul ul ul ul ul ul ul .element-label,
+            ul ul ul ul ul ul ul ul ul ul ul ul ul ul .expand {
+                padding-left: calc(15 * 14px + 6px);
+            }
+        </style>
+        <template id="item-name">
+            <input type="text" class="item-name {{ {active: editItem == item} | tokenList}}" readonly?="{{editItem != item}}" value="{{item.itemName}}" 
+                   on-dblclick="{{itemNameDblclickAction}}" on-blur="{{nameBlurAction}}" on-keypress="{{nameKeypressAction}}" />
+        </template>
+        <template id="item-visibility">
+            <template if="{{editItem != item}}">
+                <juicy-toggle-icon-button class="visibility" on-click="{{ refreshTileList }}" iconoff="jte-icon-eye" iconon="jte-icon-eye-off" checked="{{item.hidden}}" value="{{item.itemName}}"></juicy-toggle-icon-button>
+            </template>
+        </template>
+        <ul id="root">
+            <template repeat="{{ tree as branch }}" id="recursive">
+                <!-- branch -->
+                <li class="{{ {collapsed: collapsed[toRootName(branch.node)]} | tokenList}}">
+                    <div class="{{ branch | getBranchClassName }}" on-mouseover="{{hoverAction}}" on-mouseout="{{blurAction}}" title="{{ toRootName(branch.node) }}">
+                        <juicy-toggle-icon-button class="expand" iconon="jte-icon-angle-right" iconoff="jte-icon-angle-down" checked="{{collapsed[toRootName(branch.node)]}}"></juicy-toggle-icon-button>
+                        <div on-tap="{{tapAction}}" class="txt">
+                            <i class="jte-icon jte-icon-th-large" title="juicy-tile-list"></i>
+                            <input type="text" class="item-name {{ {active: editBranch == branch} | tokenList}}" readonly?="{{editBranch != branch}}" value="{{ branch.node.setup.itemName }}"
+                                   on-dblclick="{{branchNameDblclickAction}}" on-blur="{{nameBlurAction}}" on-keypress="{{nameKeypressAction}}" />
+                        </div>
+                    </div>
+                    <ul class="branch">
+                        <template repeat="{{ branch.node.setup.items as item }}" id="item">
+                            <!-- item -->
+                            <li class="drop {{ {collapsed: collapsed[item.id]} | tokenList}}">
+                                <template if="{{ item.items }}">
+                                    <!-- group -->
+                                    <div class="drop-item {{ item | getBranchClassName }}" on-mouseover="{{hoverAction}}" on-mouseout="{{blurAction}}" title="{{item.id}}">
+                                        <juicy-toggle-icon-button class="expand" iconon="jte-icon-angle-right" iconoff="jte-icon-angle-down" checked="{{collapsed[item.id]}}"></juicy-toggle-icon-button>
+                                        <template bind ref="item-visibility"></template>
+                                        <juicy-draggable on-juicy-draggable-stop="{{ itemDragStop }}" position="static" dropselector="html /deep/ ul.branch li .drop-item" disabled?="{{editItem == item}}">
+                                            <div on-tap="{{tapAction}}" class="txt">
+                                                <template bind ref="item-name"></template>
+                                            </div>
+                                        </juicy-draggable>
+                                    </div>
+                                    <ul class="group">
+                                        <template repeat="{{ item.items as item }}" ref="item"></template>
+                                    </ul>
+                                </template>
+
+                                <template if="{{ !item.items }}" id="element">
+                                    <!-- real element -->
+                  
+                                    <template if="{{ !branch.branches[ item.id ] }}">
+                                        <!-- without nested juicy-tile-list -->
+                                        <div class="{{ item | getBranchClassName }}" on-mouseover="{{hoverAction}}" on-mouseout="{{blurAction}}" title="{{item.id}}">
+                                            <template bind ref="item-visibility"></template>
+                                            <juicy-draggable on-juicy-draggable-stop="{{ itemDragStop }}" position="static" dropselector="html /deep/ ul.branch li .drop-item" disabled?="{{editItem == item}}">
+                                                <div on-tap="{{tapAction}}" class="txt">
+                                                    <template bind ref="item-name">
+                                                    </template>
+                                                </div>
+                                            </juicy-draggable>
+                                        </div>
+                                    </template>
+                                    <template if="{{ branch.branches[ item.id ] }}">
+                                        <!-- with nested juicy-tile-list -->
+                                        <div class="{{ item | getBranchClassName }}" on-mouseover="{{hoverAction}}" on-mouseout="{{blurAction}}" title="{{item.id}}">
+                                            <juicy-toggle-icon-button class="expand" iconon="jte-icon-angle-right" iconoff="jte-icon-angle-down" checked="{{collapsed[item.id]}}"></juicy-toggle-icon-button>
+                                            <template bind ref="item-visibility"></template>
+                                            <juicy-draggable on-juicy-draggable-stop="{{ itemDragStop }}" position="static" dropselector="html /deep/ ul.branch li .drop-item" disabled?="{{editItem == item}}">
+                                                <div on-tap="{{tapAction}}" class="txt">
+                                                    <template bind ref="item-name"></template>
+                                                </div>
+                                            </juicy-draggable>
+                                        </div>
+                                        <ul class="group">
+                                            <template repeat="{{ branch.branches[ item.id ] as branch }}" ref="recursive"></template>
+                                        </ul>
+                                    </template>
+                                </template>
+                            </li>
+                        </template>
+                    </ul>
+                </li>
+            </template>
+        </ul>
+        <shadow></shadow>
+    </template>
+    <script src="juicy-tile-tree.js"></script>
+</polymer-element>

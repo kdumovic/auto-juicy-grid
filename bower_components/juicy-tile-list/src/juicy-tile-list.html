@@ -1,0 +1,660 @@
+<!--
+`juicy-tile-list element` - masonry-like Polymer Element for sortable tiles that packs efficiently without changing HTML structure (changes CSS only).
+
+@element juicy-tile-list
+@demo https://Juicy.github.io/juicy-tile-list/
+version: 0.2.2
+-->
+<!-- Import Polymer -->
+<link rel="import" href="../../polymer/polymer.html">
+
+<script src="rectangle.js"></script>
+<script src="packer.js"></script>
+<script src="package.js"></script>
+
+
+<template id="juicy-tile"><div class="juicy-tile"><content></content></div></template>
+
+<!-- Define your custom element -->
+<polymer-element name="juicy-tile-list" constructor="JuicyTileListElement" attributes="setup duration layersOrientation defaultTileSetup gutter refreshOnMutation refreshOnResize refreshOnAttached">
+    <template>
+    <style>
+        :host {
+            display: block;
+        }
+        #container{
+            position: relative;
+            z-index: 0;
+        }
+        
+        polyfill-next-selector { content: ':host #container> .juicy-tile'; }
+        .juicy-tile{
+            position: absolute;
+        }
+        polyfill-next-selector { content: ':host #container> .containerBackground'; }
+        .containerBackground{
+            position: absolute;
+            z-index: -1;
+        }
+        /*
+          polyfill-next-selector { content: ':host #container.animate> *'; }
+          #container.animate ::content>*,
+          #container.animate >*,
+        */
+        .animate > .juicy-tile,
+        .animate > .containerBackground  {
+            -webkit-transition: width 0.5s, height 0.5s, top 0.5s, left 0.5s, -webkit-transform 0.5s;
+            transition: width 0.5s ease-out, height 0.5s ease-out, top 0.5s ease-out, left 0.5s ease-out, transform 0.5s ease-out;
+        }
+        /**/
+    </style>
+    <div id="container" class="animate"></div>
+    </template>
+    <script>
+    (function( scope ){
+      var tileDecorator = (document._currentScript || document.currentScript).ownerDocument
+                    .getElementById("juicy-tile").content;
+      /**
+       * For a given element, returns the available width excluding margin, border and padding
+       * @param {Element} elem
+       * @return {Number}
+       */
+      function innerWidth(elem) {
+        var outerWidth = elem.offsetWidth;
+        var computedStyle = window.getComputedStyle(elem, null);
+        var borderLeft = parseFloat(computedStyle.getPropertyValue('border-left')) || 0;
+        var borderRight = parseFloat(computedStyle.getPropertyValue('border-right')) || 0;
+        var paddingLeft = parseFloat(computedStyle.getPropertyValue('padding-left')) || 0;
+        var paddingRight = parseFloat(computedStyle.getPropertyValue('padding-right')) || 0;
+        return outerWidth - borderLeft - borderRight - paddingLeft - paddingRight;
+      }
+
+      /**
+       * For a given element, returns the available height excluding margin, border and padding
+       * @param {Element} elem
+       * @return {Number}
+       */
+      function innerHeight(elem) {
+        var outerHeight = elem.offsetHeight;
+        var computedStyle = window.getComputedStyle(elem, null);
+        var borderTop = parseFloat(computedStyle.getPropertyValue('border-top')) || 0;
+        var borderBottom = parseFloat(computedStyle.getPropertyValue('border-bottom')) || 0;
+        var paddingTop = parseFloat(computedStyle.getPropertyValue('padding-top')) || 0;
+        var paddingBottom = parseFloat(computedStyle.getPropertyValue('padding-bottom')) || 0;
+        return outerHeight - borderTop - borderBottom - paddingTop - paddingBottom;
+      }
+
+
+        var defaultTileSetup = {
+            width: 256,
+            height: 128,
+            priority: 0
+        };
+        /**
+         * Disregard `<style>`, `<template>` and Text nodes.
+         * @param  {NodesList} nodesList nodes list to filter
+         * @return {Array}           array of sortable children.
+         */
+        function filterNodes( nodesList ){
+            return nodesList.array()
+                        .filter(function filterOutText(child){
+                            return !(child instanceof Text) &&
+                                    !(child instanceof HTMLLinkElement) &&
+                                    !(child instanceof HTMLStyleElement) &&
+                                    !(child instanceof HTMLTemplateElement) &&
+                                    !(child.nodeName == "PUPPET-MORPHURL") && //ok, this is too much. ideas?
+                                    !(child instanceof HTMLScriptElement);
+                        });
+        }
+
+        /**
+         * Modifies setup array with default settings for not mapped tiles
+         * @param {Array} tiles
+         * @param {Array} setupItems
+         * @param {Array} item
+         * @param {Object} defaultTileSetup
+         */
+        function defaultSetup( tiles, setupItems, allItems, defaultTileSetup ){
+            for(var elNo = 0, eLen = tiles.length; elNo < eLen; elNo++) {
+              var tile = tiles[elNo];
+              if( !allItems[tile.id] ){
+                var itemSetup = JSON.parse(JSON.stringify(defaultTileSetup));
+                if(setupItems.length == 0) {
+                  itemSetup.priority = 0.5;
+                }
+                else {
+                  itemSetup.priority = getMinimumPriority(setupItems) * (1-1/eLen);
+                }
+                //scoping magic
+                  itemSetup.id = tile.id;
+                // itemSetup.id = elNo;
+                Object.defineProperty(itemSetup, "container", {value:allItems["root"], writable: true})
+                setupItems.push(itemSetup);
+                allItems[tile.id] = itemSetup;
+              }
+            }
+        }
+
+        /**
+         * Returns the minimum value of the priority property from the given array of objects
+         * @param {Array<Object>} arr
+         * @return {Number} number in range from 0 to 1
+         * @TODO DRY
+         */
+        function getMinimumPriority(arr) {
+          var min = 1;
+          for (var i = 0, ilen = arr.length; i < ilen; i++) {
+            if (arr[i].priority < min) {
+              min = arr[i].priority;
+            }
+          }
+          if (min < 0) {
+            min = 0;
+          }
+          return min;
+        }
+        function workaroundAddResizeListener(node, fn){
+          var parent = node;
+          parent = parent.parentNode;
+          while( parent && parent.tagName != "BODY" ){
+            if(parent.tagName == node.tagName){
+              parent.addEventListener("juicy-tile-list-refresh", fn);
+              break;
+            }
+            parent = parent.parentNode;
+          }
+        }
+        // FIXME: DRY
+        function workaroundRemoveResizeListener(node, fn){
+          var parent = node;
+          parent = parent.parentNode;
+          while( parent && parent.tagName != "BODY" ){
+            if(parent.tagName == node.tagName){
+              parent.removeEventListener("juicy-tile-list-refresh", fn);
+              break;
+            }
+            parent = parent.parentNode;
+          }
+        }
+        function updateWrappers(elementsArray, element) {
+          //TODO: improve performance
+          //TODO: decide how to handle setup when something was removed/added in the middle
+          // to shift or not to shift indexes?
+          //when something added/ removed clear all first
+          if(element.$.container.children.length){
+            element.$.container.innerHTML = "";
+          }
+          // console.log("updateWrappers", tileDecorator);
+          var tiles = [], frag, tile, child, id,
+            //scoping magic
+            scopePrefix = "", scopedIndex=0;
+          var wrappers = document.createDocumentFragment();
+          for (var i=0, len = elementsArray.length; i < len; i++) {
+            child = elementsArray[i];
+            //scoping magic
+            //  
+              if(child.tagName === "JUICY-TILE-GROUP"){
+                scopePrefix = child.getAttribute("name") || "";
+                scopePrefix += "/";
+                scopedIndex = 0;
+                continue;
+              }
+              id = scopePrefix + scopedIndex;
+              scopedIndex++;
+            //id = i;
+
+
+
+            frag = document.importNode(tileDecorator, true);
+            tile = frag.firstChild;
+            tile.id = id;
+            tile.firstChild.setAttribute("select", "[juicytile='"+id+"']");
+            wrappers.appendChild(frag);
+
+            //if (elem.setAttribute) {
+              // attach a selectable key to each light-dom node
+              child.setAttribute('juicytile', id);
+              // specify a <content> with that key
+              tiles.push(tile);
+              // add also key based
+              tiles[id] = tile;
+              // tiles.push(child);
+            //}
+          }
+          element.$.container.appendChild(wrappers);
+          return tiles;
+        }
+
+
+        Polymer('juicy-tile-list', Platform.mixin( {}, Package.prototype, {
+            // setup: {}, // set in `created` 'constructor'
+            // {
+            //   direction: "rightDown",
+            //   gutter: 8,
+            //   items: []
+            // },
+            elements: null,
+            // {array Object}
+            // tiles in ShadowDOM
+            tiles: null,
+            // unfortunately due to https://www.w3.org/Bugs/Public/show_bug.cgi?id=18429
+            // we cannot do it nicely, and we need to workaround it 
+            // with classes, ids, and this.$.id
+            //tiles: null,
+              // getTile: function(id){
+              //   return this.shadowRoot.getElementById(id);
+              // },
+            // {
+            //  id_of_element_in_DOM: {element: DOMElement, setup: setupObject, container},..
+            //  id_of_v_container: {setup: setupObject, items: , packer: packer}        
+            allItems: null,// {}, 
+
+            duration: 0.5,
+            refreshOnMutation: false,
+            refreshOnResize: false,
+            refreshOnAttached: true,
+
+            defaultTileSetup: defaultTileSetup,
+            created: function(){
+              this.setup = {}; // Polymer's type detection.
+              // Define mutation observer to observe changes
+              // TODO: Make it cleaner
+              // create an observer instance
+              var that = this;
+              this.observer = new MutationObserver(function(mutations) {
+                var doRefresh = false;
+                mutations.forEach(function(mutation) {
+                  // console.log("observation", mutation.type, arguments, mutations);
+                  if(mutation.addedNodes.length || mutation.removedNodes.length){
+                      // console.log("something was added or removed")
+                      doRefresh = true;
+                  }
+                });
+                if(doRefresh){
+                  //DRY, performance
+                  that.createItemsList();
+                  that.refresh();
+                }
+              });
+              // bind this to #refresh for listeners
+              this.refresh = this.refresh.bind(this);
+            },
+            sorter: function byPriority(itemA, itemB){
+                return itemB.priority - itemA.priority;
+            },
+            createItemsList: function(){
+              // console.log("createItemsList");
+              this.elements = filterNodes(this.children);
+              this.tiles = updateWrappers(this.elements, this);
+              // this.tiles["root"] = this.$.container;
+              defaultSetup(
+                this.tiles,
+                this.setup.items,
+                this.allItems,
+                this.defaultTileSetup
+              );
+              this.tiles["root"] = this.$.container;
+            },
+            parseDeclaration: function(elementElement) {
+              var template = this.fetchTemplate(elementElement);
+              // make a shadow root
+              var root = this.createShadowRoot();
+              // stamp template
+              var dom = document.importNode(template.content, true);
+              this.$ = {
+                // workaround for lack of getElementById in IE polyfilled templates
+                container: dom.getElementById && dom.getElementById("container") || dom.querySelector("#container")
+              };
+              // append to shadow dom
+              root.appendChild(dom);
+              // perform post-construction initialization tasks on shadow root
+              //this.shadowRootReady(root, template);
+              // return the created shadow root
+              this.shadowRoots[elementElement.name] = root;
+            },
+            domReady: function gridAttached(){
+              // console.log("domReady");
+              // console.profile("attached");
+              // console.time('attached');
+              var that = this;
+              // pass setup if contains something (not `{}`-used for Polymer type detection)
+              // IDEA: consider merging with createItemsList, and re-flow setup, to fix Polyjuice glitches (tomalec)
+              Package.call(this, this.setup && this.setup.items !== undefined ? this.setup : undefined);
+              if(this.gutter != undefined){
+                this.setup.gutter = parseInt(this.gutter, 10);
+              }
+
+              this.createItemsList();
+
+
+              if(this.refreshOnResize){
+                this.addResizeListeners();
+              }
+
+              if(this.refreshOnAttached){
+                that.refresh();
+              }
+
+              if(this.refreshOnMutation){
+                this.observer.observe(this, { childList: true });
+              }
+
+              // console.timeEnd("attached");
+              // console.profileEnd("attached");
+              // This is ugly hack not to run attrChanged observers until domReady and our element is fully set up.(tomalec)
+              // TODO: check if it can be sync after we made template native
+              that.async(function(){
+                that.isReady = true;
+              });
+            },
+
+            detached: function(){
+              this.observer.disconnect();
+
+            }, //clean .elements, etc. (tomalec)
+            addResizeListeners: function(){
+              if(document.attachEvent){
+                this.attachEvent('onresize', this.refresh);
+              } else {
+                //FIXME: async timeout look ugly (tomalec)
+                //we wait for transition, so innerHeight won't miss the planned size
+                //FIXME: transition was disregarded to simplify removing listener
+                // workaroundAddResizeListener( this, this.async.bind(this, "refresh", undefined, this.duration*100 +1) );
+                workaroundAddResizeListener( this, this.refresh );
+              }
+
+              window.addEventListener('resize', this.refresh, true);
+            },
+            removeResizeListeners: function(){
+              if(document.attachEvent){
+                this.detachEvent('onresize', this.refresh);
+              } else {
+                //FIXME: transition was disregarded to simplify removing listener
+                workaroundRemoveResizeListener( this, this.refresh );
+              }
+
+              window.removeEventListener('resize', this.refresh, true);
+            },
+          /**
+           * Delete virtual container, move items (if any) to one above.
+           * @extends Package#deleteContainer
+           * Remove corresponding ShadowDOM element.
+           * @//param  {Item | String} what        Reference to, or id of the container to delete.
+           * @param  {Item} what        Reference to the container to delete.
+           * @param  {Boolean} [noRepacking=false]  `true` to prevent  re-packing after setup change.
+           * @return {Object}             deleted item
+           */
+          deleteContainer: function( what, noRepacking ){
+            var deletedItem = Package.prototype.deleteContainer.call(this, what, noRepacking);
+            var deletedElement = this.tiles[deletedItem.id];
+              // var deletedElement = this.getTile(deletedItem.id);
+            deletedElement.parentNode.removeChild(deletedElement);
+            return deletedItem;
+          },
+          /**
+           Deletes fake containers from DOM
+           */
+          cleanupDOM: function() {
+            var containerBackgrounds = this.$.container.querySelectorAll('.containerBackground');
+            for (var i = 0, ilen = containerBackgrounds.length; i < ilen; i++) {
+              this.$.container.removeChild(containerBackgrounds[i]);
+            }
+          },
+          /**
+           * Extend `Package.prototype.packItems` with DOM features: 
+           * `heightAuto`, `widthAuto`, 
+           * map virtual containers to real elements in ShadowDOM.
+           * @param  {Object} [setup=this.setup] setup to pack
+           * @return {Object} packed setup as in Package.prototype.packItems
+           * @see Package.prototype.packItems
+           * @TODO: refactor widthAuto, heightAuto, etc for ShadowDOM tiles
+           */
+          packItems: function packDOMItems( setup ){
+            setup || (setup = this.setup);
+            // var elements = this.elements;
+            var tiles = this.tiles;
+            // TODO: support LTR
+            if( this.setup.direction != "downRight"){
+               this.setup.width = innerWidth(this);
+               this.setup.heightAuto = true;
+            } else {
+              this.setup.height = innerHeight(this);
+              this.setup.widthAuto = true;
+            }
+            if (tiles) {
+              var itemSetup, 
+                  tile,
+                  itemsLength = setup.items.length;
+              while( itemsLength--){
+                  // TODO: do it more lightweight
+                  itemSetup = setup.items[itemsLength];
+                  tile = tiles[ itemSetup.id ];
+                  // tile = this.getTile( itemSetup.id );
+                  if (itemSetup.items !== undefined) { // virtual group
+                    if (!tile) {
+                      tile = document.createElement('DIV');
+                      tile.className = 'containerBackground';
+                      tiles[ itemSetup.id ] = tile;
+                        tile.id = itemSetup.id;
+                      this.$.container.appendChild(tile);
+                    } else {
+                        this.$.container.appendChild(tile);
+                    }
+
+                    (itemSetup.content != undefined) && (tile.innerHTML = itemSetup.content);
+                  }
+                  
+
+                  if ( tile && !itemSetup.items ){ // single element
+                      // Disable padding to get real dimensions
+                      var p = tile.style.padding;
+                      tile.style.padding = "";
+
+
+                    if(itemSetup.widthAuto){
+                      // itemSetup.width = tile.clientWidth;
+                      tile.style.width = ""; //slow, but I don't know another way to measure real width when tile's content has shrinked other than remove height property before measuring (Marcin)
+                      itemSetup.width = tile.scrollWidth; //now we can measure scrollHeight because width is already set and height is not constrained
+                    } 
+                    if(itemSetup.heightAuto){
+                      // use width constraint first, if given.
+                      if( !itemSetup.widthAuto ){
+                        tile.style.width = (typeof itemSetup.width == "string") ? 
+                            itemSetup.width 
+                            :
+                            itemSetup.width + "px";
+                      }
+
+                      // itemSetup.height = tile.clientHeight;          
+                      tile.style.height = ""; //slow, but I don't know another way to measure real height when tile's content has shrinked other than remove height property before measuring (Marcin)
+                      itemSetup.height = tile.scrollHeight; //now we can measure scrollHeight because width is already set and height is not constrained
+                    }
+
+                    // Return padding value back
+                    tile.style.padding = p;
+                  }
+                  //recursion is done in Package#packItems 
+              }
+            }
+
+            return Package.prototype.packItems.call( this, setup );
+
+          },
+            /**
+             * Refresh everything
+             * Asynchronous due to https://www.w3.org/Bugs/Public/show_bug.cgi?id=18429 workaround
+             */
+          refresh: function( ) {
+            // console.log("refresh");
+            var container = this.$.container;
+            //unfortunatelly, this needs refreshed ShadowDOM wrappers too
+            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=18429 
+            var packedTree = this.packItems();
+            
+            container.style.width = packedTree.width + "px";
+            container.style.height = packedTree.height + "px";
+
+            // console.log("render");
+            this.renderer( packedTree, this.tiles, 0, 0);
+            // trigger event
+            this.dispatchEvent( new CustomEvent("juicy-tile-list-refresh") );
+          },
+          attributeChanged: function(name, oldVal, newVal){
+            switch(name){
+              case "setup":
+                // do nothing before domReady
+                if(this.isReady){
+                  // console.info("setupChanged");
+                  this.cleanupDOM();
+
+                  Package.call(this, this.setup);
+                  defaultSetup(
+                    this.tiles,
+                    this.setup.items,
+                    this.allItems,
+                    this.defaultTileSetup
+                  );
+                  this.refresh();
+                }
+                break;
+              case "refreshonmutation":
+                if(this.refreshOnMutation){
+                  this.observer.observe(this, { childList: true });
+                } else {
+                  this.observer.disconnect();
+                }
+                break;
+              case "refreshonresize":
+                if(this.refreshOnResize){
+                  this.addResizeListeners();
+                } else {
+                  this.removeResizeListeners();
+                }
+                break;
+            }
+          },
+
+          /**
+           * For an array of HTML elements, returns total size in which they would all fit in one dimension.
+           * Dimension projection is read through startProp and sizeProp
+           * @param {Array} elements
+           * @param {String} startProp - "offsetLeft" or "offsetTop"
+           * @param {String} sizeProp - "offsetWidth" or "offsetHeight"
+           * @returns {Number}
+           * @TODO: consider use of items, or packedItems instead of DOM, and moving to Package.js (tomalec)
+           * @TODO: if this is private, make it private instead of adding `_`  (tomalec)
+           */
+          _getMinimumDimension: function (elements, startProp, sizeProp) {
+            var ranges = [];
+
+            if (elements.length < 1) {
+              throw new Error("I need at least one element");
+            }
+
+            elements.sort(function (a, b) {
+              return a[startProp] - b[startProp];
+            });
+
+            ranges.push({
+              start: elements[0][startProp],
+              end: elements[0][startProp] + elements[0][sizeProp]
+            });
+
+            for (var i = 1, ilen = elements.length; i < ilen; i++) {
+              var last = ranges[ranges.length - 1];
+              var start = elements[i][startProp];
+              var end = elements[i][startProp] + elements[i][sizeProp];
+
+              if (last.end < start) {
+                ranges.push({
+                  start: start,
+                  end: end
+                });
+              }
+              else if (last.end < end) {
+                last.end = end;
+              }
+            }
+
+            var sizeSum = 0;
+            for (var i = 0, ilen = ranges.length; i < ilen; i++) {
+              sizeSum += ranges[i].end - ranges[i].start;
+            }
+
+            return sizeSum;
+          },
+          /**
+           * For an array of HTML elements, returns the minimum width and height where they can fit
+           * @param {Array} elements
+           * @returns {{width: {Number}, height: {Number}}}
+           * @TODO: consider use of items, or packedItems instead of DOM, and moving to Package.js (tomalec)
+           */
+          getMinimumDimensions: function (elements) {
+            return {
+              width: this._getMinimumDimension(elements, 'offsetLeft', 'offsetWidth'),
+              height: this._getMinimumDimension(elements, 'offsetTop', 'offsetHeight')
+            }
+          },
+          /**
+           * Renderer method, used to render packed tree to DOM
+           */
+          renderer: function positionAbsolute( node, tiles, offsetX, offsetY, hideAll ){
+            var childNodeNo = node.items.length,
+                child,
+                element, elementStyle, left, top, hidden;  
+            while(childNodeNo--){
+              child = node.items[childNodeNo]
+              element = tiles[ child.id ];
+                // element = this.getTile( child.id );
+              if(!element) {
+                continue; //if element is not found, perhaps DOM was not yet rendered? Skip gracefully
+              }
+              elementStyle = element.style;
+              // hide items marked as hidden ;)
+              hidden = hideAll || child.hidden;
+              if(hidden){
+                elementStyle.display = "none";
+                //continue; // do not process children?
+              } else {
+                // force default - block 
+                elementStyle.display = "";
+                left = ( child.x || 0 ) + offsetX; 
+                top = ( child.y || 0 ) + offsetY;
+                var oversize = child.oversize || 0;
+                // Old way to apply oversize
+                //elementStyle.left = ( left - oversize ) + "px";
+                //elementStyle.top = ( top - oversize ) + "px";
+                //elementStyle.width = ( child.width + 2 * oversize ) + "px";
+                //elementStyle.height = ( child.height + 2 * oversize ) + "px";
+                elementStyle.left = left + "px";
+                elementStyle.top = top + "px";
+                elementStyle.width = child.width + "px";
+                elementStyle.height = child.height + "px";
+                if (child.background !== undefined) {
+                    elementStyle.backgroundColor = child.background || "transparent";
+                } else {
+                    elementStyle.backgroundColor = "";
+                }
+                elementStyle.outline = child.outline || "";
+
+                if (oversize) {
+                    elementStyle.padding = oversize + "px";
+                    elementStyle.margin = "-" + oversize + "px";
+                } else {
+                    elementStyle.padding = "";
+                    elementStyle.margin = "";
+                }
+              }
+              
+              if(child.items){// virtual container
+                positionAbsolute( child, tiles, left, top, hidden);
+                // this.renderer( child, elements, left, top, hidden);
+              }
+            }
+          }
+         }) 
+        );
+    }());
+    </script>
+
+</polymer-element>
