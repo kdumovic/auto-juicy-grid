@@ -97,9 +97,11 @@ version: 0.1.2
                 console.log(this.$.container);
                 console.log(this.$.container.items);
                 sender.classList.add("clickedGridElement");
-                var new_container = this.createNewContainer('HELLO', null, {width: 100, height: 100, priority: 1.0}, false);
+                var tileId = sender.getAttribute("juicytile");
+                var new_container = this.createNewContainer('HELLO'+tileId, null, {width: 100, height: 100, priority: 1.0}, false);
+                new_container.background = '#00ff00';
                 console.log(new_container);
-                this.moveToContainer(this.$.container, new_container);
+                this.moveToContainer(this.allItems[tileId], new_container);
                 //console.log(this.$.new_container);
                 //new_container.classList.add("gridElement");
                 //this.reprioritizeItem(this.$, true);
